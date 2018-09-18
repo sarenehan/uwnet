@@ -232,7 +232,7 @@ class MLP(nn.Module, SaverMixin):
     def args(self):
         return (self.mean, self.scale, self.time_step)
 
-    def rhs(self, aux, progs):
+    def rhs(self, aux, progs, layer_mass):
         """Estimated source terms and diagnostics"""
         x = {}
         x.update(aux)
@@ -251,7 +251,28 @@ class MLP(nn.Module, SaverMixin):
         for key in progs:
             sources[key] = out[key] / 86400
 
+        #  apply contraints on tendency
+        try:
+            fsl = sources['SLI']
+            fqt = sources['QT']
+            prec = out['Prec']
+            shf = out['SHF']
+            lhf = out['SHF']
+            radtoa = out['RADTOA']
+            radsfc = out['RADSFC']
+        except KeyError:
+            pass
+        else:
+            fsl = constraints.constrain_temperature_tendency(
+                fsl, prec, shf, radtoa, radsfc, layer_mass)
+            fqt = constraints.constrain_moisture_tendency(
+                fqt, prec, lhf, layer_mass)
+            sources['SLI'] = fsl
+            sources['QT'] = fqt
+
+        # apply contraints on diagnostics
         diags = {key: val for key, val in out.items() if key not in progs}
+
         return sources, diags
 
     def step(self, x, dt, *args):
@@ -280,7 +301,7 @@ class MLP(nn.Module, SaverMixin):
         aux = {key: val for key, val in x.items() if key in self.aux}
         progs = {key: val for key, val in x.items() if key in self.progs}
 
-        sources, diagnostics = self.rhs(aux, progs)
+        sources, diagnostics = self.rhs(aux, progs, x['layer_mass'])
 
         out = {}
         for key in sources:
@@ -291,15 +312,12 @@ class MLP(nn.Module, SaverMixin):
             else:
                 out[key] = x[key] + dt * sources[key]
 
-            x = assoc(x, forcing_key, 0.0)
             # store the NN forcing as a diagnostic
             diagnostics[nn_forcing_key] = sources[key]
 
         out = merge(out, diagnostics)
-
-        out = constraints.apply_constraints(
-            x, out, dt, output_specs=self.outputs)
-
+        # out = constraints.apply_constraints(out, dt, x['layer_mass'],
+        #                                     output_specs=self.outputs)
         return out
 
     def forward(self, x, n=None):
