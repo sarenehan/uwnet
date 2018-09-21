@@ -88,6 +88,7 @@
 <li class="toctree-l2"><a class="reference internal" href="#module-uwnet.datasets">Datasets</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#module-uwnet.loss">Loss Functions</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#module-uwnet.model">Models</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#custom-pytorch-modules">Custom PyTorch Modules</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="smoother.html">Biharmonic Smoother</a></li>
@@ -351,6 +352,50 @@ kwargs</p>
 <dd><p>Specification data for variable inputs</p>
 <p>This class allows passing relevant metadata such as physical units,
 dimension, and name.</p>
+</dd></dl>
+
+</div>
+<div class="section" id="custom-pytorch-modules">
+<h2>Custom PyTorch Modules<a class="headerlink" href="#custom-pytorch-modules" title="Permalink to this headline">¶</a></h2>
+<p>This project includes some modules with a more general purpose.</p>
+<span class="target" id="module-uwnet.modules"></span><dl class="class">
+<dt id="uwnet.modules.LinearDictIn">
+<em class="property">class </em><code class="descclassname">uwnet.modules.</code><code class="descname">LinearDictIn</code><span class="sig-paren">(</span><em>inputs</em>, <em>n_out</em><span class="sig-paren">)</span><a class="headerlink" href="#uwnet.modules.LinearDictIn" title="Permalink to this definition">¶</a></dt>
+<dd><p>A Dense Linear Layer Transform for dicts of tensors</p>
+<dl class="method">
+<dt id="uwnet.modules.LinearDictIn.forward">
+<code class="descname">forward</code><span class="sig-paren">(</span><em>input</em><span class="sig-paren">)</span><a class="headerlink" href="#uwnet.modules.LinearDictIn.forward" title="Permalink to this definition">¶</a></dt>
+<dd><p>Defines the computation performed at every call.</p>
+<p>Should be overridden by all subclasses.</p>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">Although the recipe for forward pass needs to be defined within
+this function, one should call the <code class="xref py py-class docutils literal notranslate"><span class="pre">Module</span></code> instance afterwards
+instead of this since the former takes care of running the
+registered hooks while the latter silently ignores them.</p>
+</div>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="uwnet.modules.LinearDictOut">
+<em class="property">class </em><code class="descclassname">uwnet.modules.</code><code class="descname">LinearDictOut</code><span class="sig-paren">(</span><em>n_in</em>, <em>outputs</em><span class="sig-paren">)</span><a class="headerlink" href="#uwnet.modules.LinearDictOut" title="Permalink to this definition">¶</a></dt>
+<dd><p>A Dense Linear Layer Transform for dicts of tensors</p>
+<dl class="method">
+<dt id="uwnet.modules.LinearDictOut.forward">
+<code class="descname">forward</code><span class="sig-paren">(</span><em>input</em><span class="sig-paren">)</span><a class="headerlink" href="#uwnet.modules.LinearDictOut.forward" title="Permalink to this definition">¶</a></dt>
+<dd><p>Defines the computation performed at every call.</p>
+<p>Should be overridden by all subclasses.</p>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">Although the recipe for forward pass needs to be defined within
+this function, one should call the <code class="xref py py-class docutils literal notranslate"><span class="pre">Module</span></code> instance afterwards
+instead of this since the former takes care of running the
+registered hooks while the latter silently ignores them.</p>
+</div>
+</dd></dl>
+
 </dd></dl>
 
 </div>
