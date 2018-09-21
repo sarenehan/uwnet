@@ -1,0 +1,426 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>API &mdash; UWNET  documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Biharmonic Smoother" href="smoother.html" />
+    <link rel="prev" title="The System for Atmospheric Modeling" href="sam.html" /> 
+
+  
+  <script src="_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="index.html" class="icon icon-home"> UWNET
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="post-processing.html">Post Processing NGAqua</a></li>
+<li class="toctree-l1"><a class="reference internal" href="training.html">Training Procedure</a></li>
+<li class="toctree-l1"><a class="reference internal" href="constraints.html">Physical constraints</a></li>
+<li class="toctree-l1"><a class="reference internal" href="sam.html">The System for Atmospheric Modeling</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">API</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#module-uwnet.datasets">Datasets</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#module-uwnet.loss">Loss Functions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#module-uwnet.model">Models</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="smoother.html">Biharmonic Smoother</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">UWNET</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="index.html">Docs</a> &raquo;</li>
+        
+      <li>API</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="_sources/api.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="api">
+<h1>API<a class="headerlink" href="#api" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="module-uwnet.datasets">
+<span id="datasets"></span><h2>Datasets<a class="headerlink" href="#module-uwnet.datasets" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="uwnet.datasets.XRTimeSeries">
+<em class="property">class </em><code class="descclassname">uwnet.datasets.</code><code class="descname">XRTimeSeries</code><span class="sig-paren">(</span><em>data</em>, <em>dims</em><span class="sig-paren">)</span><a class="headerlink" href="#uwnet.datasets.XRTimeSeries" title="Permalink to this definition">¶</a></dt>
+<dd><p>A pytorch Dataset class for time series data in xarray format</p>
+<dl class="docutils">
+<dt>data <span class="classifier-delimiter">:</span> <span class="classifier">xr.Dataset</span></dt>
+<dd>input data</dd>
+<dt>dims <span class="classifier-delimiter">:</span> <span class="classifier">seq</span></dt>
+<dd><p class="first">list of dimensions used to reshape the data. Format:</p>
+<div class="last highlight-default notranslate"><div class="highlight"><pre><span></span><span class="p">(</span><span class="n">time_dims</span><span class="p">,</span> <span class="n">batch_dims</span><span class="p">,</span> <span class="n">feature_dims</span><span class="p">)</span>
+</pre></div>
+</div>
+</dd>
+</dl>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">ds</span> <span class="o">=</span> <span class="n">xr</span><span class="o">.</span><span class="n">open_dataset</span><span class="p">(</span><span class="s2">&quot;in.nc&quot;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">XRTimeSeries</span><span class="p">(</span><span class="n">ds</span><span class="p">,</span> <span class="p">[[</span><span class="s1">&#39;time&#39;</span><span class="p">],</span> <span class="p">[</span><span class="s1">&#39;x&#39;</span><span class="p">,</span> <span class="s1">&#39;y&#39;</span><span class="p">],</span> <span class="p">[</span><span class="s1">&#39;z&#39;</span><span class="p">]])</span>
+</pre></div>
+</div>
+<dl class="method">
+<dt id="uwnet.datasets.XRTimeSeries.constants">
+<code class="descname">constants</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#uwnet.datasets.XRTimeSeries.constants" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="uwnet.datasets.XRTimeSeries.mean">
+<code class="descname">mean</code><a class="headerlink" href="#uwnet.datasets.XRTimeSeries.mean" title="Permalink to this definition">¶</a></dt>
+<dd><p>Mean of the contained variables</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="uwnet.datasets.XRTimeSeries.scale">
+<code class="descname">scale</code><a class="headerlink" href="#uwnet.datasets.XRTimeSeries.scale" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="uwnet.datasets.XRTimeSeries.std">
+<code class="descname">std</code><a class="headerlink" href="#uwnet.datasets.XRTimeSeries.std" title="Permalink to this definition">¶</a></dt>
+<dd><p>Standard deviation of the contained variables</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="uwnet.datasets.XRTimeSeries.time_dim">
+<code class="descname">time_dim</code><a class="headerlink" href="#uwnet.datasets.XRTimeSeries.time_dim" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="uwnet.datasets.XRTimeSeries.timestep">
+<code class="descname">timestep</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#uwnet.datasets.XRTimeSeries.timestep" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="uwnet.datasets.XRTimeSeries.torch_constants">
+<code class="descname">torch_constants</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#uwnet.datasets.XRTimeSeries.torch_constants" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-uwnet.loss">
+<span id="loss-functions"></span><h2>Loss Functions<a class="headerlink" href="#module-uwnet.loss" title="Permalink to this headline">¶</a></h2>
+<dl class="attribute">
+<dt id="uwnet.loss.MVLoss">
+<code class="descclassname">uwnet.loss.</code><code class="descname">MVLoss</code><a class="headerlink" href="#uwnet.loss.MVLoss" title="Permalink to this definition">¶</a></dt>
+<dd><p>MSE loss</p>
+<dl class="docutils">
+<dt>keys</dt>
+<dd>list of keys to compute loss with</dd>
+</dl>
+<p>x : truth
+y : prediction</p>
+</dd></dl>
+
+</div>
+<div class="section" id="module-uwnet.model">
+<span id="models"></span><h2>Models<a class="headerlink" href="#module-uwnet.model" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="uwnet.model.MLP">
+<em class="property">class </em><code class="descclassname">uwnet.model.</code><code class="descname">MLP</code><span class="sig-paren">(</span><em>mean</em>, <em>scale</em>, <em>time_step</em>, <em>inputs=(('LHF'</em>, <em>1)</em>, <em>('SHF'</em>, <em>1)</em>, <em>('SOLIN'</em>, <em>1)</em>, <em>('QT'</em>, <em>34)</em>, <em>('SLI'</em>, <em>34)</em>, <em>('FQT'</em>, <em>34)</em>, <em>('FSLI'</em>, <em>34))</em>, <em>outputs=(('SLI'</em>, <em>34)</em>, <em>('QT'</em>, <em>34))</em>, <em>add_forcing=False</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#uwnet.model.MLP" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="docutils">
+<dt>add_forcing <span class="classifier-delimiter">:</span> <span class="classifier">bool</span></dt>
+<dd>If true, FQT, FU, etc in the inputs to MLP.forward will be added to the
+produce the final tendencies.</dd>
+</dl>
+<dl class="method">
+<dt id="uwnet.model.MLP.forward">
+<code class="descname">forward</code><span class="sig-paren">(</span><em>x</em>, <em>n=None</em><span class="sig-paren">)</span><a class="headerlink" href="#uwnet.model.MLP.forward" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="docutils">
+<dt>x</dt>
+<dd>variables. predictions will be made for all time points not
+included in the prognostic varibles in  x.</dd>
+<dt>n <span class="classifier-delimiter">:</span> <span class="classifier">int</span></dt>
+<dd>number of time steps of prognostic varibles to use before starting
+prediction</dd>
+</dl>
+<dl class="docutils">
+<dt>outputs</dt>
+<dd>dictionary of output_fields variables including prognostics and
+diagnostics</dd>
+</dl>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="uwnet.model.MLP.progs">
+<code class="descname">progs</code><a class="headerlink" href="#uwnet.model.MLP.progs" title="Permalink to this definition">¶</a></dt>
+<dd><p>Prognostic variables are shared between the input and output
+sets</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="uwnet.model.MLP.rhs">
+<code class="descname">rhs</code><span class="sig-paren">(</span><em>aux</em>, <em>progs</em><span class="sig-paren">)</span><a class="headerlink" href="#uwnet.model.MLP.rhs" title="Permalink to this definition">¶</a></dt>
+<dd><p>Estimated source terms and diagnostics</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="uwnet.model.MLP.step">
+<code class="descname">step</code><span class="sig-paren">(</span><em>x</em>, <em>dt</em>, <em>*args</em><span class="sig-paren">)</span><a class="headerlink" href="#uwnet.model.MLP.step" title="Permalink to this definition">¶</a></dt>
+<dd><p>Perform one time step using the neural network</p>
+<dl class="docutils">
+<dt>x <span class="classifier-delimiter">:</span> <span class="classifier">dict</span></dt>
+<dd>dict of torch arrays (input variables)</dd>
+<dt>dt <span class="classifier-delimiter">:</span> <span class="classifier">float</span></dt>
+<dd>the timestep in seconds</dd>
+<dt><a href="#id1"><span class="problematic" id="id2">*</span></a>args</dt>
+<dd>not used</dd>
+</dl>
+<dl class="docutils">
+<dt>out <span class="classifier-delimiter">:</span> <span class="classifier">dict of torch arrays</span></dt>
+<dd>dict of the predictands. Either the next time step for the
+prognostic variables, or the predicted value for the
+non-prognostics (e.g. LHF, SHF, Prec).</dd>
+<dt>None</dt>
+<dd>placeholder to work with legacy code.</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="uwnet.model.MLP.train">
+<code class="descname">train</code><span class="sig-paren">(</span><em>val=True</em><span class="sig-paren">)</span><a class="headerlink" href="#uwnet.model.MLP.train" title="Permalink to this definition">¶</a></dt>
+<dd><p>Sets the module in training mode.</p>
+<p>This has any effect only on certain modules. See documentations of
+particular modules for details of their behaviors in training/evaluation
+mode, if they are affected, e.g. <code class="xref py py-class docutils literal notranslate"><span class="pre">Dropout</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">BatchNorm</span></code>,
+etc.</p>
+<dl class="docutils">
+<dt>Returns:</dt>
+<dd>Module: self</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="uwnet.model.MOE">
+<em class="property">class </em><code class="descclassname">uwnet.model.</code><code class="descname">MOE</code><span class="sig-paren">(</span><em>m</em>, <em>n</em>, <em>n_experts</em><span class="sig-paren">)</span><a class="headerlink" href="#uwnet.model.MOE" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="method">
+<dt id="uwnet.model.MOE.forward">
+<code class="descname">forward</code><span class="sig-paren">(</span><em>x</em><span class="sig-paren">)</span><a class="headerlink" href="#uwnet.model.MOE.forward" title="Permalink to this definition">¶</a></dt>
+<dd><p>Defines the computation performed at every call.</p>
+<p>Should be overridden by all subclasses.</p>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">Although the recipe for forward pass needs to be defined within
+this function, one should call the <code class="xref py py-class docutils literal notranslate"><span class="pre">Module</span></code> instance afterwards
+instead of this since the former takes care of running the
+registered hooks while the latter silently ignores them.</p>
+</div>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="uwnet.model.SaverMixin">
+<em class="property">class </em><code class="descclassname">uwnet.model.</code><code class="descname">SaverMixin</code><a class="headerlink" href="#uwnet.model.SaverMixin" title="Permalink to this definition">¶</a></dt>
+<dd><p>Mixin for output and initializing models from dictionaries of the state
+and arguments</p>
+<p>args
+kwargs</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="uwnet.model.VariableList">
+<em class="property">class </em><code class="descclassname">uwnet.model.</code><code class="descname">VariableList</code><span class="sig-paren">(</span><em>variables</em><span class="sig-paren">)</span><a class="headerlink" href="#uwnet.model.VariableList" title="Permalink to this definition">¶</a></dt>
+<dd><p>List of VariableSpec objects</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="uwnet.model.VariableSpec">
+<em class="property">class </em><code class="descclassname">uwnet.model.</code><code class="descname">VariableSpec</code><span class="sig-paren">(</span><em>name</em>, <em>num</em>, <em>positive=False</em>, <em>conserved=False</em>, <em>units=''</em><span class="sig-paren">)</span><a class="headerlink" href="#uwnet.model.VariableSpec" title="Permalink to this definition">¶</a></dt>
+<dd><p>Specification data for variable inputs</p>
+<p>This class allows passing relevant metadata such as physical units,
+dimension, and name.</p>
+</dd></dl>
+
+</div>
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="smoother.html" class="btn btn-neutral float-right" title="Biharmonic Smoother" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="sam.html" class="btn btn-neutral" title="The System for Atmospheric Modeling" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2018, Noah D. Brenowitz.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'./',
+            VERSION:'',
+            LANGUAGE:'None',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="_static/jquery.js"></script>
+      <script type="text/javascript" src="_static/underscore.js"></script>
+      <script type="text/javascript" src="_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+      <script type="text/javascript" src="None"></script>
+
+  
+
+  <script type="text/javascript" src="_static/js/theme.js"></script>
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
