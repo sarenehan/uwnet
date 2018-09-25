@@ -9,6 +9,7 @@ use sgs
 use tracers
 use movies, only: init_movies
 use held_suarez_mod
+use wall_damping
 use python_caller
 implicit none
 
@@ -165,6 +166,10 @@ do while(nstep.lt.nstop.and.nelapse.gt.0)
 !   	spange-layer damping near the upper boundary:
 
      if(dodamping) call damping()
+
+! damp the meridional boundaries
+
+     if (dodamping .and. dowally) call damp_y_boundary
 
 !----------------------------------------------------------
 
