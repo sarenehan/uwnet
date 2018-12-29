@@ -1,4 +1,4 @@
-from train_nn import train_model
+from stewart_intro.train_nn import train_model
 from stewart_intro.evaluate_model import (
     plot_q_vs_nn_output,
     get_diagnostic_r2_score,

@@ -1,5 +1,5 @@
 import matplotlib.pyplot as plt
-from train_nn import train_model
+from stewart_intro.train_nn import train_model
 
 min_time_step = .125
 graph_save_location_format = '/Users/stewart/Desktop/time_error_dt_{}'

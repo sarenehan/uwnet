@@ -11,7 +11,7 @@ We can evaluate this hypothesis by training models with 3, 6, and 9 hour time
 steps, and evaluating the R2 for each step.
 """
 import matplotlib.pyplot as plt
-from train_nn import train_model
+from stewart_intro.train_nn import train_model
 from stewart_intro.evaluate_model import (
     plot_model_error_output,
     get_diagnostic_r2_score,

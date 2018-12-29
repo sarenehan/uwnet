@@ -4,7 +4,7 @@ import math
 import numpy as np
 from statistics import mean
 from sklearn.metrics import r2_score
-from train_nn import (
+from stewart_intro.train_nn import (
     default_dt,
     default_include_known_forcing,
 )
