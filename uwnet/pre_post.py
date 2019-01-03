@@ -43,6 +43,7 @@ def prepare_data(data, exog=['QT', 'SLI', 'SST', 'SOLIN'], sample=None):
             names.append((key, z))
 
     inputs = np.concatenate(vals, axis=1)
+    inputs = inputs[np.isfinite(inputs).all(axis=1)]
     idx = pd.MultiIndex.from_tuples(names)
     return pd.DataFrame(inputs, columns=idx)
 
@@ -66,12 +67,11 @@ def fit_scaler_transform(x):
 
 def get_post(data, m=20):
     logger.info("Fitting PCA models for outputs")
-    q1 = compute_apparent_source(data.SLI, data.FSLI * 86400).dropna('time')
-    q2 = compute_apparent_source(data.QT, data.FQT * 86400).dropna('time')
+    q1 = compute_apparent_source(data.SLI, data.FSLI * 86400)
+    q2 = compute_apparent_source(data.QT, data.FQT * 86400)
 
     ds = xr.Dataset({'Q1': q1, 'Q2': q2})
     df = prepare_data(ds, exog=['Q1', 'Q2'])
-
     funcs = {
         'SLI': fit_pca_inverse_transform(df['Q1'], m),
         'QT': fit_pca_inverse_transform(df['Q2'], m),

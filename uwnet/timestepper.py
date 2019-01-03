@@ -14,9 +14,11 @@ class Batch(object):
     def forcings(self):
         return set(self.data.keys()) - set(self.prognostics)
 
-    @staticmethod
-    def select_time(data, t):
-        return data.apply(lambda x: x[:, t])
+    def select_time(self, data, t):
+        try:
+            return data.apply(lambda x: x[:, t])
+        except:
+            return data.apply(lambda x: x[:, :, t])
 
     def get_known_forcings(self):
         out = {}

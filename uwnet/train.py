@@ -21,6 +21,7 @@ To see a list of all the available configuration options run::
 """
 import logging
 import os
+import numpy as np
 from contextlib import contextmanager
 from os.path import join
 
@@ -54,6 +55,8 @@ def my_config():
     seq_length = 1
     batch_size = 256
     vertical_grid_size = 34
+    min_precip_percentile = .10
+    max_precip_percentile = .30
     loss_scale = {
         'LHF': 150,
         'SHF': 10,
@@ -91,12 +94,15 @@ def my_config():
 
 
 @ex.capture
-def get_dataset(data):
+def get_dataset(data, min_precip_percentile, max_precip_percentile):
     try:
         dataset = xr.open_zarr(data)
     except ValueError:
         dataset = xr.open_dataset(data)
-
+    min_precip = dataset.Prec.quantile(min_precip_percentile)
+    max_precip = dataset.Prec.quantile(max_precip_percentile)
+    dataset = dataset.where(dataset.Prec >= min_precip).where(
+        dataset.Prec < max_precip)
     try:
         return dataset.isel(step=0).drop('step').drop('p')
     except:
