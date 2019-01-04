@@ -3,9 +3,9 @@ import xarray as xr
 import pickle
 
 project_dir = '/Users/stewart/projects/uwnet/'
-data_dir = project_dir + '../data/'
-dataset_filename = \
-    '2018-09-18-NG_5120x2560x34_4km_10s_QOBS_EQX-SAM_Processed.nc'
+data_dir = project_dir + 'data/processed/'
+dataset_filename = 'training.nc'
+model_name = 'multi_step_nn_32_1_1'
 
 
 def load_data():

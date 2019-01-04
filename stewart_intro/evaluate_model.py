@@ -9,11 +9,83 @@ from stewart_intro.train_nn import (
     default_include_known_forcing,
 )
 from matplotlib import pyplot as plt
+from stewart_intro.generate_training_data import normalize_data
 
 
 def get_weighted_r2_score(true, pred, data):
     weights = np.concatenate([data.layer_mass.values] * true.shape[0])
     return r2_score(true.ravel(), pred.ravel(), sample_weight=weights)
+
+
+def get_predicted_q1_and_q2(mlp, dt=default_dt):
+    time_steps = 50
+    data, normalization_dict = normalize_data()
+    normalization_dict['qt_sli'] = {
+        'mean': np.concatenate([
+            normalization_dict['QT']['mean'],
+            normalization_dict['SLI']['mean']
+        ]),
+        'sd': np.array([
+            normalization_dict['QT']['sd']] * 34 +
+            [normalization_dict['SLI']['sd']] * 34)
+    }
+    q1_trues = []
+    q1_preds = []
+    q2_trues = []
+    q2_preds = []
+    for x in np.random.choice(data.x.values, 10):
+        for y in np.random.choice(data.y.values, 10):
+            times = np.random.choice(
+                data.time.values[data.time.values < data.time.values[
+                    -(time_steps * int(dt / default_dt))]], 6)
+            data_to_select = {'x': x, 'y': y, 'time': times}
+            q1_true = []
+            q2_true = []
+            q1_pred = []
+            q2_pred = []
+            last_true_state = np.hstack(
+                data.sel(data_to_select)[['QT', 'SLI']].to_array().values)
+            fqt_fsli = np.hstack(
+                data.sel(data_to_select)[['FQT', 'FSLI']].to_array().values)
+            for idx in range(time_steps):
+                to_predict_from = torch.tensor(np.hstack([
+                    (np.hstack(data.sel(data_to_select)[
+                        ['QT', 'SLI']].to_array().values) -
+                        normalization_dict['qt_sli']['mean']) /
+                    normalization_dict['qt_sli']['sd'],
+                    data.sel(data_to_select)[
+                        ['LHF_normalized',
+                         'SHF_normalized',
+                         'SOLIN_normalized']].to_array().values.T
+                ]))
+                nn_output = mlp.forward(to_predict_from)
+                q1_pred.append(nn_output.detach().numpy()[:, 34:])
+                q2_pred.append(nn_output.detach().numpy()[:, :34])
+                data_to_select['time'] += dt
+                true_state = np.hstack(
+                    data.sel(data_to_select)[['QT', 'SLI']].to_array().values)
+                q_true = (true_state - last_true_state - (
+                          dt * 86400 * fqt_fsli))
+                fqt_fsli = np.hstack(data.sel(
+                    data_to_select)[['FQT', 'FSLI']].to_array().values)
+                q1_true.append(q_true[:, 34:])
+                q2_true.append(q_true[:, :34])
+                last_true_state = true_state
+            q1_true = np.vstack(q1_true)
+            q2_true = np.vstack(q2_true)
+            q1_pred = np.vstack(q1_pred)
+            q2_pred = np.vstack(q2_pred)
+            if len(q1_trues):
+                q1_trues = np.concatenate([q1_trues, q1_true])
+                q2_trues = np.concatenate([q2_trues, q2_true])
+                q1_preds = np.concatenate([q1_preds, q1_pred])
+                q2_preds = np.concatenate([q2_preds, q2_pred])
+            else:
+                q1_trues = q1_true
+                q2_trues = q2_true
+                q1_preds = q1_pred
+                q2_preds = q2_pred
+    return q1_trues, q2_trues, q1_preds, q2_preds
 
 
 def get_diagnostic_r2_score(

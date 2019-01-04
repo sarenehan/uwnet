@@ -1,11 +1,10 @@
 from copy import deepcopy
 from stewart_intro.generate_training_data import normalize_data
 from stewart_intro.utils import pickle_model
+from stewart_intro.mlp import MLP
 import random
 import torch
 import torch.optim as optim
-import torch.nn as nn
-import torch.nn.functional as F
 import numpy as np
 
 default_dt = 0.125
@@ -17,21 +16,6 @@ default_training_rate = 0.001
 default_include_known_forcing = True
 default_n_hidden_nodes = 500
 seconds_per_day = 86400
-
-
-class MLP(nn.Module):
-
-    def __init__(self, n_hidden_nodes=default_n_hidden_nodes):
-        super(MLP, self).__init__()
-        self.fc1 = nn.Linear(71, 500)
-        self.fc2 = nn.Linear(500, 256)
-        self.fc3 = nn.Linear(256, 68)
-
-    def forward(self, x):
-        x = F.relu(self.fc1(x))
-        x = F.relu(self.fc2(x))
-        x = self.fc3(x)
-        return x
 
 
 def get_batches(
@@ -162,7 +146,7 @@ def train_model(
         training_rate=default_training_rate,
         include_known_forcing=default_include_known_forcing,
         n_hidden_nodes=default_n_hidden_nodes,
-        verbose=False):
+        verbose=True):
     if not model_name:
         model_name = 'multi_step_nn_{}_{}'.format(
             batch_size, n_time_steps) + '_{}'
@@ -213,7 +197,7 @@ def train_model(
                 include_known_forcing=include_known_forcing)
             loss.backward()
             optimizer.step()    # Does the update
-        pickle_model(mlp, model_name.format(idx + ((epoch_num - 1) * 10000)))
+    pickle_model(mlp, model_name.format(epoch_num))
     total_mse = estimate_total_mse(
         mlp,
         data,

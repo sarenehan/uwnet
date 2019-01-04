@@ -1,4 +1,5 @@
 from stewart_intro.utils import load_data
+import numpy as np
 
 scalar_features = ['LHF', 'SHF', 'SOLIN']
 
@@ -39,3 +40,17 @@ def normalize_data(filter_down=True):
     if filter_down:
         data = data.isel(y=list(range(28, 36)))
     return data, normalization_dict
+
+
+def get_layer_mass():
+    data, normalization_dict = normalize_data()
+    normalization_dict['qt_sli'] = {
+        'mean': np.concatenate([
+            normalization_dict['QT']['mean'],
+            normalization_dict['SLI']['mean']
+        ]),
+        'sd': np.array([
+            normalization_dict['QT']['sd']] * 34 +
+            [normalization_dict['SLI']['sd']] * 34)
+    }
+    return data.layer_mass.values / data.layer_mass.values.mean()
