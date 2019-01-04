@@ -88,12 +88,12 @@ class XRTimeSeries(Dataset):
         y_iter = range(0, len_y, 1)
         t_iter = range(0, len_t, self.time_length)
         assert len_t % self.time_length == 0
-        self.indices = list(product(t_iter, y_iter, x_iter))
-        # non_null_indices = np.argwhere(~np.isnan(self.data['Prec'].values))
-        # for idx, iter_ in enumerate([t_iter, y_iter, x_iter]):
-        #     non_null_indices = non_null_indices[
-        #         np.isin(non_null_indices[:, idx], iter_)]
         # self.indices = list(product(t_iter, y_iter, x_iter))
+        non_null_indices = np.argwhere(~np.isnan(self.data['Prec'].values))
+        for idx, iter_ in enumerate([t_iter, y_iter, x_iter]):
+            non_null_indices = non_null_indices[
+                np.isin(non_null_indices[:, idx], iter_)]
+        self.indices = list(product(t_iter, y_iter, x_iter))
         # new_indices = non_null_indices.tolist()
         # old_indices = list(product(t_iter, y_iter, x_iter))
         # import pdb; pdb.set_trace()

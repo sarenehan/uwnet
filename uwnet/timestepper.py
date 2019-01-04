@@ -1,7 +1,15 @@
 """Time steppers"""
 import attr
+from functools import partial
 from toolz import merge, first
 from .tensordict import TensorDict
+
+
+def select_time(x, t=0):
+    try:
+        return x[:, t]
+    except IndexError:
+        return x[:, :, t]
 
 
 @attr.s
@@ -15,10 +23,7 @@ class Batch(object):
         return set(self.data.keys()) - set(self.prognostics)
 
     def select_time(self, data, t):
-        try:
-            return data.apply(lambda x: x[:, t])
-        except:
-            return data.apply(lambda x: x[:, :, t])
+        return data.apply(partial(select_time, t=t))
 
     def get_known_forcings(self):
         out = {}
