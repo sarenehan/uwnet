@@ -51,7 +51,7 @@ class StochasticStateModel(object):
 
     def predict(self, data):
         model = self.conditional_models[self.eta]
-        self.update_current_state
+        self.update_current_state()
         return model.predict(data)
 
     def save(self, save_location):
