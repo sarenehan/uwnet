@@ -1,5 +1,4 @@
 import numpy as np
-import random
 import torch
 from toolz import valmap
 from torch.utils.data import Dataset
@@ -147,8 +146,8 @@ class ConditionalXRSampler(XRTimeSeries):
         super(ConditionalXRSampler, self).__init__(data, time_length=2)
 
     def setup_indices(self):
-        self.indices = random.sample(np.argwhere(
-            self.data.eta.values == self.eta).tolist(), 500)
+        self.indices = np.argwhere(
+            self.data.eta.values == self.eta).tolist()
 
 
 def get_timestep(data):

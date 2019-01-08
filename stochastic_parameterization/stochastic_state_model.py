@@ -1,4 +1,5 @@
 import os
+import pickle
 import numpy as np
 import torch
 from stochastic_parameterization.get_transition_matrix import \
@@ -52,3 +53,12 @@ class StochasticStateModel(object):
         model = self.conditional_models[self.eta]
         self.update_current_state
         return model.predict(data)
+
+    def save(self, save_location):
+        with open(save_location, 'wb') as f:
+            pickle.dump(self, f)
+
+
+def load_model(file_path):
+    with open(file_path, 'rb') as f:
+        return pickle.load(f)
