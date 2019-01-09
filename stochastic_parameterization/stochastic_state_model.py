@@ -49,6 +49,10 @@ class StochasticStateModel(object):
                     f'models/stochastic_state_model_{eta}/1.pkl'
                 )
             self.conditional_models = conditional_models
+            self.predictor = np.vectorize(
+                lambda eta, x:
+                    self.conditional_models[eta].forward(x)
+            )
             self.is_trained = True
         else:
             raise Exception('Model already trained')
@@ -57,9 +61,10 @@ class StochasticStateModel(object):
         self.eta = self.eta_stepper(self.eta)
 
     def predict(self, data):
-        model = self.conditional_models[self.eta]
+        if not self.is_trained:
+            raise Exception('Model is not trained.')
         self.update_current_state()
-        return model.predict(data)
+        return self.predictor(data)
 
     def save(self, save_location):
         with open(save_location, 'wb') as f:
