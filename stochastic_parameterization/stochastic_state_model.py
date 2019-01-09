@@ -29,17 +29,16 @@ class StochasticStateModel(object):
             )
         )
 
-    def train_conditional_model(self, eta):
-        os.system(
-            """
-                python -m uwnet.train with \
-                    assets/training_configurations/default.json \
-                    eta_to_train=2 \
-                    batch_size=20000 \
-                    epochs=1 \
-                    output_dir=models/stochastic_state_model_{}
-            """.format(eta)
-        )
+    def train_conditional_model(
+            self,
+            eta,
+            training_config_file,
+            **kwargs):
+        cmd = f'python -m uwnet.train with {training_config_file}'
+        cmd += f' eta_to_train={eta}'
+        for key, val in kwargs.items():
+            cmd += f' {key}={val}'
+        os.system(cmd)
 
     def train(self):
         conditional_models = {}
