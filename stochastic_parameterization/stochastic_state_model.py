@@ -66,11 +66,11 @@ class StochasticStateModel(object):
         self.update_current_state()
         return self.predictor(data)
 
+    @classmethod
+    def load(cls, file_path):
+        with open(file_path, 'rb') as f:
+            return pickle.load(f)
+
     def save(self, save_location):
         with open(save_location, 'wb') as f:
             pickle.dump(self, f)
-
-
-def load_model(file_path):
-    with open(file_path, 'rb') as f:
-        return pickle.load(f)
