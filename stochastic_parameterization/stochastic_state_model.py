@@ -10,15 +10,24 @@ class StochasticStateModel(object):
 
     def __init__(
             self,
-            precip_quantiles=[0.06, 0.15, 0.30, 0.70, 0.85, 0.94, 1]):
+            precip_quantiles=[0.06, 0.15, 0.30, 0.70, 0.85, 0.94, 1],
+            dims=(128, 64)):
         self.is_trained = False
         self.precip_quantiles = precip_quantiles
         self.possible_etas = list(range(len(precip_quantiles)))
         self.eta = np.random.choice(
             self.possible_etas,
+            dims,
             p=np.ediff1d([0] + list(precip_quantiles))
         )
         self.transition_matrix = get_transition_matrix(precip_quantiles)
+        self.eta_stepper = np.vectorize(
+            lambda eta:
+            np.random.choice(
+                self.possible_etas,
+                p=self.transition_matrix[eta]
+            )
+        )
 
     def train_conditional_model(self, eta):
         os.system(
@@ -46,8 +55,7 @@ class StochasticStateModel(object):
             raise Exception('Model already trained')
 
     def update_current_state(self):
-        probabilities = self.transition_matrix[self.eta]
-        self.eta = np.random.choice(self.possible_etas, p=probabilities)
+        self.eta = self.eta_stepper(self.eta)
 
     def predict(self, data):
         model = self.conditional_models[self.eta]
