@@ -35,7 +35,7 @@ class StochasticStateModel(object):
     def train(self):
         conditional_models = {}
         if not self.is_trained:
-            for eta in range(len(self.precip_quantiles)):
+            for eta in self.possible_etas:
                 self.train_conditional_model(eta)
                 conditional_models[eta] = torch.load(
                     f'models/stochastic_state_model_{eta}/1.pkl'
