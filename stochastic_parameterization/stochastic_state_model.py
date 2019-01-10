@@ -36,15 +36,20 @@ class StochasticStateModel(object):
             **kwargs):
         cmd = f'python -m uwnet.train with {training_config_file}'
         cmd += f' eta_to_train={eta}'
+        cmd += f' output_dir=models/stochastic_state_model_{eta}'
         for key, val in kwargs.items():
             cmd += f' {key}={val}'
         os.system(cmd)
 
-    def train(self):
+    def train(
+            self,
+            training_config_file='assets/training_configurations/default.json',
+            **kwargs):
         conditional_models = {}
         if not self.is_trained:
             for eta in self.possible_etas:
-                self.train_conditional_model(eta)
+                self.train_conditional_model(
+                    eta, training_config_file, **kwargs)
                 conditional_models[eta] = torch.load(
                     f'models/stochastic_state_model_{eta}/1.pkl'
                 )
@@ -74,3 +79,10 @@ class StochasticStateModel(object):
     def save(self, save_location):
         with open(save_location, 'wb') as f:
             pickle.dump(self, f)
+
+
+if __name__ == '__main__':
+    model = StochasticStateModel()
+    kwargs = {'batch_size': 1000, 'epochs': 1}
+    model.train(**kwargs)
+    model.save('stochastic_parameterization/stochastic_model.pkl')

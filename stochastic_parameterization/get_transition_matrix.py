@@ -46,8 +46,9 @@ def count_total_starting_occurences(dataset, indices_by_quantile):
     return (indices_by_quantile[:, 0] != max_time_idx).sum()
 
 
-def get_transition_matrix(percentiles):
-    dataset = load_dataset()
+def get_transition_matrix(percentiles, only_tropics=False):
+    dataset = load_dataset(only_tropics=only_tropics)
+    dataset = dataset.isel(time=(list(range(20, 25))))
     precip_values = dataset.Prec.values.ravel()
     indices_by_quantile_dict = get_indices_by_quantile_dict(
         dataset, precip_values, percentiles)
