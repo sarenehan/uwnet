@@ -69,7 +69,7 @@ class StochasticStateModel(object):
         if not self.is_trained:
             raise Exception('Model is not trained.')
         self.update_current_state()
-        return self.predictor(data)
+        return self.predictor(self.eta, data)
 
     @classmethod
     def load(cls, file_path):
