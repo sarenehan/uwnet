@@ -13,20 +13,17 @@ class StochasticStateModel(object):
             precip_quantiles=[0.06, 0.15, 0.30, 0.70, 0.85, 0.94, 1],
             dims=(128, 64)):
         self.is_trained = False
+        self.dims = dims
         self.precip_quantiles = precip_quantiles
         self.possible_etas = list(range(len(precip_quantiles)))
+        self.transition_matrix = get_transition_matrix(precip_quantiles)
+        self.setup_eta()
+
+    def setup_eta(self):
         self.eta = np.random.choice(
             self.possible_etas,
-            dims,
-            p=np.ediff1d([0] + list(precip_quantiles))
-        )
-        self.transition_matrix = get_transition_matrix(precip_quantiles)
-        self.eta_stepper = np.vectorize(
-            lambda eta:
-            np.random.choice(
-                self.possible_etas,
-                p=self.transition_matrix[eta]
-            )
+            self.dims,
+            p=np.ediff1d([0] + list(self.precip_quantiles))
         )
 
     def train_conditional_model(
@@ -62,14 +59,30 @@ class StochasticStateModel(object):
         else:
             raise Exception('Model already trained')
 
-    def update_current_state(self):
-        self.eta = self.eta_stepper(self.eta)
+    def update_eta(self):
+        new_eta = np.zeros(self.eta.size)
+        for eta in self.possible_etas:
+            indices = np.ravel_multi_index(
+                np.argwhere(self.eta == eta).T, self.dims)
+            next_etas = np.random.choice(
+                self.possible_etas,
+                len(indices),
+                p=self.transition_matrix[eta]
+            )
+            np.put(new_eta, indices, next_etas)
+        self.eta = new_eta.reshape(self.dims)
 
-    def predict(self, data):
+    def predict(self, x):
         if not self.is_trained:
             raise Exception('Model is not trained.')
-        self.update_current_state()
-        return self.predictor(self.eta, data)
+        self.update_eta()
+        output = np.zeros(x.size)
+        for eta, model in self.conditional_models.items():
+            indices = np.ravel_multi_index(
+                np.argwhere(self.eta == eta).T, self.dims)
+            predictions = model.forward(np.take(x, indices))
+            np.put(output, indices, predictions)
+        return output.reshape(self.dims)
 
     @classmethod
     def load(cls, file_path):
