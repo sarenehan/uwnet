@@ -133,7 +133,7 @@ def get_data_loader(data: xr.Dataset, x, y, time_sl, vertical_grid_size,
         x=slice(*x),
         time=slice(*time_sl))
 
-    if eta_to_train:
+    if eta_to_train is not None:
         train_data = ConditionalXRSampler(ds, eta_to_train)
     else:
         train_data = XRTimeSeries(ds)
