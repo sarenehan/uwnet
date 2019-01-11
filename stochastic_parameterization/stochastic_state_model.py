@@ -2,8 +2,11 @@ import os
 import pickle
 import numpy as np
 import torch
+from scipy import linalg
 from stochastic_parameterization.get_transition_matrix import \
     get_transition_matrix
+
+dataset_dt_seconds = 10800
 
 
 class StochasticStateModel(object):
@@ -11,13 +14,23 @@ class StochasticStateModel(object):
     def __init__(
             self,
             precip_quantiles=[0.06, 0.15, 0.30, 0.70, 0.85, 0.94, 1],
-            dims=(128, 64)):
+            dims=(128, 64),
+            dt_seconds=10800):
         self.is_trained = False
         self.dims = dims
+        self.dt_seconds = dt_seconds
         self.precip_quantiles = precip_quantiles
         self.possible_etas = list(range(len(precip_quantiles)))
-        self.transition_matrix = get_transition_matrix(precip_quantiles)
         self.setup_eta()
+        self.transition_matrix = get_transition_matrix(self.precip_quantiles)
+        self.setup_transition_matrix()
+
+    def setup_transition_matrix(self):
+        if self.dt_seconds != dataset_dt_seconds:
+            continuous_transition_matrix = linalg.logm(
+                self.transition_matrix) / dataset_dt_seconds
+            self.transition_matrix = linalg.expm(
+                continuous_transition_matrix * self.dt_seconds)
 
     def setup_eta(self):
         self.eta = np.random.choice(
@@ -34,6 +47,7 @@ class StochasticStateModel(object):
         cmd = f'python -m uwnet.train with {training_config_file}'
         cmd += f' eta_to_train={eta}'
         cmd += f' output_dir=models/stochastic_state_model_{eta}'
+        cmd += f" precip_quantiles='{self.precip_quantiles}'"
         for key, val in kwargs.items():
             cmd += f' {key}={val}'
         os.system(cmd)
