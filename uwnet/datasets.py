@@ -1,4 +1,6 @@
 import numpy as np
+import pandas as pd
+from copy import deepcopy
 import torch
 from toolz import valmap
 from torch.utils.data import Dataset
@@ -69,7 +71,6 @@ class XRTimeSeries(Dataset):
         """
         self.time_length = time_length or len(data.time)
         self.data = data
-        self.numpy_data = {key: data[key].values for key in data.data_vars}
         self.data_vars = set(data.data_vars)
         self.dims = {key: data[key].dims for key in data.data_vars}
         self.constants = {
@@ -100,14 +101,14 @@ class XRTimeSeries(Dataset):
             if key in self.constants:
                 continue
 
-            data_array = self.numpy_data[key]
             if 'z' in self.dims[key]:
                 this_array_index = (slice(t, t + self.time_length),
                                     slice(None), y, x)
             else:
                 this_array_index = (slice(t, t + self.time_length), None, y, x)
 
-            sample = data_array[this_array_index][:, :, np.newaxis, np.newaxis]
+            sample = self.data[key].values[
+                this_array_index][:, :, np.newaxis, np.newaxis]
             output_tensors[key] = sample.astype(np.float32)
         return output_tensors
 
@@ -146,8 +147,171 @@ class ConditionalXRSampler(XRTimeSeries):
         super(ConditionalXRSampler, self).__init__(data, time_length=2)
 
     def setup_indices(self):
-        self.indices = np.argwhere(
-            self.data.eta.values == self.eta).tolist()
+        indices = np.argwhere(
+            self.data.eta.values == self.eta)
+        self.indices = indices[indices[:, 0] < len(self.data.time) - 20]
+
+    def get_two_steps_from_single_xy_batch(self, batch):
+        batch_data = self.data.isel(batch)
+        batch_next_time_step = deepcopy(batch)
+        batch_next_time_step['time'] += 1
+        batch_data_next_time_step = self.data.isel(batch)
+        output_tensors = {}
+        for key in self.data_vars:
+            if key in self.constants:
+                continue
+            # torch.Size([64, 2, 34, 1, 1])
+            if 'z' in self.dims[key]:
+                output_start = batch_data[key].values[
+                    :, :, np.newaxis, np.newaxis]
+                output_stop = batch_data_next_time_step[key].values[
+                    :, :, np.newaxis, np.newaxis]
+                output_ = np.stack([output_start, output_stop], 1)
+            else:
+                output_start = batch_data[key].values[
+                    :, np.newaxis, np.newaxis, np.newaxis]
+                output_stop = batch_data_next_time_step[key].values[
+                    :, np.newaxis, np.newaxis, np.newaxis]
+                output_ = np.stack([output_start, output_stop], 1)
+            output_tensors[key] = torch.FloatTensor(
+                output_.astype(np.float32))
+        return output_tensors
+
+    def get_two_steps_from_mixed_xy_batch(self, batch):
+        batch_data = self.data.isel(batch)
+        batch_next_time_step = deepcopy(batch)
+        batch_next_time_step['time'] += 1
+        batch_data_next_time_step = self.data.isel(batch)
+        output_tensors = {}
+        for key in self.data_vars:
+            if key in self.constants:
+                continue
+            # torch.Size([64, 2, 34, 1, 1])
+            if 'z' in self.dims[key]:
+                output_start = np.concatenate(
+                    batch_data[key].values.T)[
+                    :, :, np.newaxis, np.newaxis]
+                output_stop = np.concatenate(
+                    batch_data_next_time_step[key].values.T)[
+                    :, :, np.newaxis, np.newaxis]
+                output_ = np.stack([output_start, output_stop], 1)
+            else:
+                output_start = np.concatenate(
+                    batch_data[key].values.T)[
+                    :, np.newaxis, np.newaxis, np.newaxis]
+                output_stop = np.concatenate(
+                    batch_data_next_time_step[key].values.T)[
+                    :, np.newaxis, np.newaxis, np.newaxis]
+                output_ = np.stack([output_start, output_stop], 1)
+            output_tensors[key] = torch.FloatTensor(
+                output_.astype(np.float32))
+        return output_tensors
+
+    def get_two_time_steps_from_indices(self, indices):
+        output_tensors = {}
+        indices_next_step = indices.copy()
+        indices_next_step[:, 0] += 1
+        for key in self.data_vars:
+            if key in self.constants:
+                continue
+
+            if 'z' in self.dims[key]:
+                output_start = self.data[key].values[
+                    indices[:, 0], :, indices[:, 1], indices[:, 2]
+                ][:, :, np.newaxis, np.newaxis]
+                output_stop = self.data[key].values[
+                    indices_next_step[:, 0],
+                    :,
+                    indices_next_step[:, 1],
+                    indices_next_step[:, 2]
+                ][:, :, np.newaxis, np.newaxis]
+                output_ = np.stack([output_start, output_stop], 1)
+            else:
+                output_start = self.data[key].values[
+                    indices[:, 0], indices[:, 1], indices[:, 2]
+                ][:, np.newaxis, np.newaxis, np.newaxis]
+                output_stop = self.data[key].values[
+                    indices_next_step[:, 0],
+                    indices_next_step[:, 1],
+                    indices_next_step[:, 2]
+                ][:, np.newaxis, np.newaxis, np.newaxis]
+                output_ = np.stack([output_start, output_stop], 1)
+            output_tensors[key] = torch.FloatTensor(
+                output_.astype(np.float32))
+        return output_tensors
+
+
+class TrainLoader(object):
+
+    def __init__(self, train_data, batch_size):
+        self.train_data = train_data
+        self.batch_size = batch_size
+
+        np.random.shuffle(self.train_data.indices)
+        self.batches = np.array_split(
+            self.train_data.indices,
+            int(len(self.train_data) / batch_size)
+        )
+        # self.batches = self.get_batches(batch_size)
+
+    def get_batches(self, batch_size):
+        df = pd.DataFrame(self.train_data.indices, columns=['time', 'y', 'x'])
+        batches = np.array([
+            {'x': row.x, 'y': row.y, 'time': np.array(row.time)}
+            for _, row in
+            df.groupby(['y', 'x'], as_index=False).agg(
+                lambda x: list(x)).iterrows()
+        ])
+        np.random.shuffle(batches)
+        return batches
+
+    def get_batches_old(self, batch_size):
+        time_indices = np.unique(self.train_data.indices[:, 0])
+        np.random.shuffle(time_indices)
+        time_batches = np.array_split(
+            time_indices, int(len(time_indices) / batch_size))
+        batches = np.array([
+            {'x': x, 'y': y, 'time': time_batch}
+            for x in np.unique(self.train_data.indices[:, 2])
+            for y in np.unique(self.train_data.indices[:, 1])
+            for time_batch in time_batches
+        ])
+        np.random.shuffle(batches)
+        return batches
+
+    def get_batches_old_2(self, batch_size):
+        time_indices = np.unique(self.train_data.indices[:, 0])
+        y_indices = np.unique(self.train_data.indices[:, 1])
+        x_indices = np.unique(self.train_data.indices[:, 2])
+        np.random.shuffle(y_indices)
+        np.random.shuffle(x_indices)
+
+        x_batches = np.array_split(
+            x_indices, round(len(x_indices) / (batch_size ** .5)))
+        y_batches = np.array_split(
+            y_indices, round(len(y_indices) / (batch_size ** .5)))
+
+        # time_batches = np.array_split(
+        #     time_indices, int(len(time_indices) / batch_size))
+        batches = np.array([
+            {'x': x_batch, 'y': y_batch, 'time': time_index}
+            for x_batch in x_batches
+            for y_batch in y_batches
+            for time_index in time_indices
+        ])
+        np.random.shuffle(batches)
+        return batches
+
+    def __iter__(self):
+        for batch_indices in self.batches:
+            yield self.train_data.get_two_time_steps_from_indices(
+                batch_indices)
+
+    def __getitem__(self, i):
+        return self.train_data.get_two_time_steps_from_indices(self.batches[i])
+
+    def __len__(self):
+        return len(self.batches)
 
 
 def get_timestep(data):

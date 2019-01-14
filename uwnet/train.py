@@ -29,11 +29,15 @@ from sacred import Experiment
 
 import torch
 import xarray as xr
-from torch.utils.data import DataLoader
 from uwnet.model import get_model
 from uwnet.pre_post import get_pre_post
 from uwnet.training_plots import TrainingPlotManager
-from uwnet.datasets import XRTimeSeries, ConditionalXRSampler, get_timestep
+from uwnet.datasets import (
+    XRTimeSeries,
+    ConditionalXRSampler,
+    get_timestep,
+    TrainLoader,
+)
 from uwnet.loss import (weighted_mean_squared_error, total_loss)
 from ignite.engine import Engine, Events
 
@@ -136,9 +140,10 @@ def get_data_loader(data: xr.Dataset, x, y, time_sl, vertical_grid_size,
     if eta_to_train is not None:
         train_data = ConditionalXRSampler(ds, eta_to_train)
     else:
-        train_data = XRTimeSeries(ds)
-    return DataLoader(
-        train_data, batch_size=batch_size, shuffle=True)
+        train_data = XRTimeSeries(ds, time_length=2)
+    train_loader = TrainLoader(
+        train_data, batch_size=batch_size)
+    return train_loader
 
 
 @ex.capture
@@ -172,7 +177,7 @@ class Trainer(object):
     """
 
     @ex.capture
-    def __init__(self, _run, lr, loss_scale):
+    def __init__(self, _run, lr, loss_scale, batch_size):
         # setup logging
         logging.basicConfig(level=logging.INFO)
 
@@ -189,13 +194,15 @@ class Trainer(object):
         self.z = torch.tensor(self.dataset.z.values).float()
         self.time_step = get_timestep(self.dataset)
         self.train_loader = get_data_loader(self.dataset)
+        self.batch_size = batch_size
 
         self.model = get_model(*get_pre_post(self.dataset))
         self.optimizer = torch.optim.Adam(self.model.parameters(), lr=lr)
         self.criterion = weighted_mean_squared_error(
             weights=self.mass / self.mass.mean(), dim=-3)
         self.plot_manager = TrainingPlotManager(ex, self.model, self.dataset)
-        self.setup_engine()
+        # self.setup_engine()
+        self.start = time.time()
 
     def setup_engine(self):
         self.engine = Engine(self.step)
