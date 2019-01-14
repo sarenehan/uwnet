@@ -59,43 +59,43 @@ class StochasticStateModel(object):
         conditional_models = {}
         if not self.is_trained:
             for eta in self.possible_etas:
-                self.train_conditional_model(
-                    eta, training_config_file, **kwargs)
+                # self.train_conditional_model(
+                #     eta, training_config_file, **kwargs)
                 conditional_models[eta] = torch.load(
                     f'models/stochastic_state_model_{eta}/1.pkl'
                 )
             self.conditional_models = conditional_models
-            self.predictor = np.vectorize(
-                lambda eta, x:
-                    self.conditional_models[eta].forward(x)
-            )
             self.is_trained = True
         else:
             raise Exception('Model already trained')
 
     def update_eta(self):
-        new_eta = np.zeros(self.eta.size)
+        new_eta = np.zeros_like(self.eta)
         for eta in self.possible_etas:
-            indices = np.ravel_multi_index(
-                np.argwhere(self.eta == eta).T, self.dims)
+            indices = np.argwhere(self.eta == eta)
             next_etas = np.random.choice(
                 self.possible_etas,
                 len(indices),
                 p=self.transition_matrix[eta]
             )
-            np.put(new_eta, indices, next_etas)
-        self.eta = new_eta.reshape(self.dims)
+            new_eta[indices[:, 0], indices[:, 1]] = next_etas
+        self.eta = new_eta
 
     def predict(self, x):
         if not self.is_trained:
             raise Exception('Model is not trained.')
+        try:
+            assert x.shape == self.dims
+        except Exception:
+            raise Exception(
+                f'Input dimensions {x.shape} do not match expected {self.dims}'
+            )
         self.update_eta()
-        output = np.zeros(x.size)
+        output = np.zeros_like(x)
         for eta, model in self.conditional_models.items():
-            indices = np.ravel_multi_index(
-                np.argwhere(self.eta == eta).T, self.dims)
+            indices = np.argwhere(self.eta == eta)
             predictions = model.forward(np.take(x, indices))
-            np.put(output, indices, predictions)
+            output[indices[:, 0], indices[:, 1]] = predictions
         return output.reshape(self.dims)
 
     @classmethod
@@ -110,6 +110,6 @@ class StochasticStateModel(object):
 
 if __name__ == '__main__':
     model = StochasticStateModel()
-    kwargs = {'batch_size': 1000, 'epochs': 1}
+    kwargs = {'epochs': 1}
     model.train(**kwargs)
     model.save('stochastic_parameterization/stochastic_model.pkl')
