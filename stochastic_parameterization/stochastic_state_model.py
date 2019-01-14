@@ -1,29 +1,68 @@
 import os
+import pandas as pd
 import pickle
 import numpy as np
 import torch
 from scipy import linalg
-from stochastic_parameterization.get_transition_matrix import \
-    get_transition_matrix
+from stochastic_parameterization.get_transition_matrix import (
+    get_transition_matrix,
+    load_dataset,
+)
+from uwnet.sam_interface import CFVariableNameAdapter
+from uwnet.numpy_interface import NumpyWrapper
+from uwnet.tensordict import TensorDict
+from torch import nn
 
 dataset_dt_seconds = 10800
+name_map = {
+    'liquid_ice_static_energy': 'SLI',
+    'x_wind': 'U',
+    'y_wind': 'V',
+    'upward_air_velocity': 'W',
+    'total_water_mixing_ratio': 'QT',
+    'air_temperature': 'TABS',
+    'latitude': 'lat',
+    'longitude': 'lon',
+    'sea_surface_temperature': 'SST',
+    'surface_air_pressure': 'p0',
+    'toa_incoming_shortwave_flux': 'SOLIN',
+    'surface_upward_sensible_heat_flux': 'SHF',
+    'surface_upward_latent_heat_flux': 'LHF'
+}
 
 
-class StochasticStateModel(object):
+class EmptyHook(object):
+
+    def values(self):
+        return []
+
+    def __len__(self):
+        return 0
+
+
+class StochasticStateModel(nn.Module):
 
     def __init__(
             self,
             precip_quantiles=[0.06, 0.15, 0.30, 0.70, 0.85, 0.94, 1],
-            dims=(128, 64),
-            dt_seconds=10800):
+            dims=(64, 128),
+            dt_seconds=10800,
+            prognostics=['QT', 'SLI']):
         self.is_trained = False
         self.dims = dims
+        self.prognostics = prognostics
         self.dt_seconds = dt_seconds
         self.precip_quantiles = precip_quantiles
         self.possible_etas = list(range(len(precip_quantiles)))
         self.setup_eta()
         self.transition_matrix = get_transition_matrix(self.precip_quantiles)
         self.setup_transition_matrix()
+        self.setup_dim_by_var()
+        self.setup_hooks()
+
+    def setup_hooks(self):
+        self._forward_hooks = EmptyHook()
+        self._backward_hooks = EmptyHook()
 
     def setup_transition_matrix(self):
         if self.dt_seconds != dataset_dt_seconds:
@@ -32,12 +71,26 @@ class StochasticStateModel(object):
             self.transition_matrix = linalg.expm(
                 continuous_transition_matrix * self.dt_seconds)
 
+    def setup_dim_by_var(self):
+        ds = load_dataset()
+        self.data_vars = ds.data_vars
+        self.constants = {
+            key
+            for key in ds.data_vars
+            if len({'x', 'y', 'time'} & set(ds[key].dims)) == 0
+        }
+        self.var_dims = {key: ds[key].dims for key in ds.data_vars}
+
     def setup_eta(self):
         self.eta = np.random.choice(
             self.possible_etas,
             self.dims,
             p=np.ediff1d([0] + list(self.precip_quantiles))
         )
+
+    def eval(self):
+        if not model.is_trained:
+            raise Exception('Model is not trained')
 
     def train_conditional_model(
             self,
@@ -48,6 +101,7 @@ class StochasticStateModel(object):
         cmd += f' eta_to_train={eta}'
         cmd += f' output_dir=models/stochastic_state_model_{eta}'
         cmd += f" precip_quantiles='{self.precip_quantiles}'"
+        cmd += f" prognostics='{self.prognostics}'"
         for key, val in kwargs.items():
             cmd += f' {key}={val}'
         os.system(cmd)
@@ -81,22 +135,19 @@ class StochasticStateModel(object):
             new_eta[indices[:, 0], indices[:, 1]] = next_etas
         self.eta = new_eta
 
-    def predict(self, x):
-        if not self.is_trained:
-            raise Exception('Model is not trained.')
-        try:
-            assert x.shape == self.dims
-        except Exception:
-            raise Exception(
-                f'Input dimensions {x.shape} do not match expected {self.dims}'
-            )
+    def forward(self, x):
         self.update_eta()
-        output = np.zeros_like(x)
+        output = TensorDict({
+            key: torch.zeros_like(x[key]) for key in self.prognostics
+        })
         for eta, model in self.conditional_models.items():
             indices = np.argwhere(self.eta == eta)
-            predictions = model.forward(np.take(x, indices))
-            output[indices[:, 0], indices[:, 1]] = predictions
-        return output.reshape(self.dims)
+            predictions = model(x)
+            for key in self.prognostics:
+                output[key][
+                    :, indices[:, 0], indices[:, 1]
+                ] = predictions[key][:, indices[:, 0], indices[:, 1]].double()
+        return output
 
     @classmethod
     def load(cls, file_path):
@@ -108,8 +159,18 @@ class StochasticStateModel(object):
             pickle.dump(self, f)
 
 
-if __name__ == '__main__':
+def train_a_model():
     model = StochasticStateModel()
     kwargs = {'epochs': 1}
     model.train(**kwargs)
     model.save('stochastic_parameterization/stochastic_model.pkl')
+
+
+if __name__ == '__main__':
+    train_a_model()
+    model = StochasticStateModel.load(
+        'stochastic_parameterization/stochastic_model.pkl')
+    model_ = CFVariableNameAdapter(
+        NumpyWrapper(model), label='neural_network')
+    data = torch.load('/Users/stewart/Desktop/state.pt')
+    pred = model_(data)

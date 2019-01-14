@@ -6,7 +6,7 @@ percentiles = [.01486, .10, .30, .70, .90, .9851432, 1]
 time_idx = 0
 
 
-def load_dataset(data="data/processed/training.nc", only_tropics=True):
+def load_dataset(data="data/processed/training.nc", only_tropics=False):
     dataset = xr.open_dataset(data)
     if only_tropics:
         dataset = dataset.isel(y=list(range(28, 36)))
