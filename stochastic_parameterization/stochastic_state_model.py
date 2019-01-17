@@ -1,5 +1,4 @@
 import os
-import pandas as pd
 import pickle
 import numpy as np
 import torch
@@ -14,30 +13,6 @@ from uwnet.tensordict import TensorDict
 from torch import nn
 
 dataset_dt_seconds = 10800
-name_map = {
-    'liquid_ice_static_energy': 'SLI',
-    'x_wind': 'U',
-    'y_wind': 'V',
-    'upward_air_velocity': 'W',
-    'total_water_mixing_ratio': 'QT',
-    'air_temperature': 'TABS',
-    'latitude': 'lat',
-    'longitude': 'lon',
-    'sea_surface_temperature': 'SST',
-    'surface_air_pressure': 'p0',
-    'toa_incoming_shortwave_flux': 'SOLIN',
-    'surface_upward_sensible_heat_flux': 'SHF',
-    'surface_upward_latent_heat_flux': 'LHF'
-}
-
-
-class EmptyHook(object):
-
-    def values(self):
-        return []
-
-    def __len__(self):
-        return 0
 
 
 class StochasticStateModel(nn.Module):
@@ -48,6 +23,7 @@ class StochasticStateModel(nn.Module):
             dims=(64, 128),
             dt_seconds=10800,
             prognostics=['QT', 'SLI']):
+        super(StochasticStateModel, self).__init__()
         self.is_trained = False
         self.dims = dims
         self.prognostics = prognostics
@@ -57,12 +33,6 @@ class StochasticStateModel(nn.Module):
         self.setup_eta()
         self.transition_matrix = get_transition_matrix(self.precip_quantiles)
         self.setup_transition_matrix()
-        self.setup_dim_by_var()
-        self.setup_hooks()
-
-    def setup_hooks(self):
-        self._forward_hooks = EmptyHook()
-        self._backward_hooks = EmptyHook()
 
     def setup_transition_matrix(self):
         if self.dt_seconds != dataset_dt_seconds:
@@ -70,16 +40,6 @@ class StochasticStateModel(nn.Module):
                 self.transition_matrix) / dataset_dt_seconds
             self.transition_matrix = linalg.expm(
                 continuous_transition_matrix * self.dt_seconds)
-
-    def setup_dim_by_var(self):
-        ds = load_dataset()
-        self.data_vars = ds.data_vars
-        self.constants = {
-            key
-            for key in ds.data_vars
-            if len({'x', 'y', 'time'} & set(ds[key].dims)) == 0
-        }
-        self.var_dims = {key: ds[key].dims for key in ds.data_vars}
 
     def setup_eta(self):
         self.eta = np.random.choice(

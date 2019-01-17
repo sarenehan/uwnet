@@ -147,9 +147,8 @@ class ConditionalXRSampler(XRTimeSeries):
         super(ConditionalXRSampler, self).__init__(data, time_length=2)
 
     def setup_indices(self):
-        indices = np.argwhere(
-            self.data.eta.values == self.eta)
-        self.indices = indices[indices[:, 0] < len(self.data.time) - 20]
+        indices = np.argwhere(self.data.eta.values == self.eta)
+        self.indices = indices[indices[:, 0] < len(self.data.time) - 1]
 
     def get_two_steps_from_single_xy_batch(self, batch):
         batch_data = self.data.isel(batch)

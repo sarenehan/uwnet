@@ -309,6 +309,16 @@ class Trainer(object):
         finally:
             os.chdir(cwd)
 
+    def manual_engine(self, epochs):
+        i_ = 1
+        n_ = len(self.train_loader)
+        for epoch in range(1, epochs + 1):
+            for batch in self.train_loader:
+                i_ += 1
+                loss_ = self.step(batch)['total']
+                print(f'{i_} / {n_}: {loss_}')
+            self.after_epoch(epoch)
+
     @ex.capture
     def train(self, epochs):
         """Train the neural network for a fixed number of epochs"""
