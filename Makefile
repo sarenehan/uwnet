@@ -63,7 +63,10 @@ ${TRAINING_DATA}:
 	snakemake data/processed/training.nc
 
 train: #${TRAINING_DATA}
-	python -m uwnet.train with data=data/processed/training.nc batch_size=32 lr=.01 epochs=5 -m uwnet
+	python -m uwnet.train with assets/training_configurations/default.json  \
+         data=data/processed/2018-12-15-longitude-slice-ngaqua.nc \
+	       epochs=1 \
+         output_dir=rapid_train
 
 train_momentum: ${TRAINING_DATA}
 	python -m uwnet.train with data=${TRAINING_DATA} examples/momentum.yaml
@@ -80,24 +83,13 @@ run_sam:
 		   -nn models/188/5.pkl \
 			 -p parameters_sam_neural_network.json \
 	      data/runs/2018-11-10-model188-khyp1e6-dt15
-          
+
 sync_data_to_drive:
 	rclone sync --stats 5s data/processed $(RCLONE_REMOTE):$(GOOGLE_DRIVE_DIR)/data/processed
 
 upload_reports:
 	rsync -avz reports/ olympus:~/public_html/reports/uwnet/
 
-docker:
-	docker run -it \
-		-v /Users:/Users  \
-		-v $(shell pwd)/uwnet:/opt/uwnet \
-		-v $(shell pwd)/ext/sam:/opt/sam \
-		-w $(shell pwd) \
-	  -e LOCAL_FLAGS=$(shell pwd)/setup/docker/local_flags.mk \
-		nbren12/uwnet:latest bash
-
-build_image:
-	docker build -t nbren12/uwnet .
 
 setup:  create_environment install_hooks build_image
 
@@ -117,12 +109,16 @@ jupyter:
 
 docs:
 	make -C docs html
+	ghp-import -n -p docs/_build/html
 
 install_hooks:
 	cp -f git-hooks/* .git/hooks/
 
 compile_sam:
 	$(MACHINE_SCRIPTS)/compile_sam.sh
+
+build_image:
+	docker-compose build sam
 
 test:
 	$(MACHINE_SCRIPTS)/run_tests.sh
